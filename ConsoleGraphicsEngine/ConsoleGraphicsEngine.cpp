@@ -1,55 +1,5 @@
-/*
-OneLoneCoder.com - 3D Graphics Part #1 - Triangles & Projections
-"Tredimensjonal Grafikk" - @Javidx9
-
-License
-~~~~~~~
-One Lone Coder Console Game Engine  Copyright (C) 2018  Javidx9
-This program comes with ABSOLUTELY NO WARRANTY.
-This is free software, and you are welcome to redistribute it
-under certain conditions; See license for details.
-Original works located at:
-https://www.github.com/onelonecoder
-https://www.onelonecoder.com
-https://www.youtube.com/javidx9
-GNU GPLv3
-https://github.com/OneLoneCoder/videos/blob/master/LICENSE
-
-From Javidx9 :)
-~~~~~~~~~~~~~~~
-Hello! Ultimately I don't care what you use this for. It's intended to be
-educational, and perhaps to the oddly minded - a little bit of fun.
-Please hack this, change it and use it in any way you see fit. You acknowledge
-that I am not responsible for anything bad that happens as a result of
-your actions. However this code is protected by GNU GPLv3, see the license in the
-github repo. This means you must attribute me if you use it. You can view this
-license here: https://github.com/OneLoneCoder/videos/blob/master/LICENSE
-Cheers!
-
-Background
-~~~~~~~~~~
-3D Graphics is an interesting, visually pleasing suite of algorithms. This is the
-first video in a series that will demonstrate the fundamentals required to
-build your own software based 3D graphics systems.
-
-Video
-~~~~~
-https://youtu.be/ih20l3pJoeU
-
-Author
-~~~~~~
-Twitter: @javidx9
-Blog: http://www.onelonecoder.com
-Discord: https://discord.gg/WhwHUMV
-
-
-Last Updated: 14/07/2018
-*/
-
-
 #include "olcConsoleGameEngine.h"
 using namespace std;
-
 
 struct vec3d
 {
@@ -79,7 +29,6 @@ public:
 		m_sAppName = L"3D Demo";
 	}
 
-
 private:
 	mesh meshCube;
 	mat4x4 matProj;
@@ -99,9 +48,11 @@ private:
 		}
 	}
 
-public:
+public: 
 	bool OnUserCreate() override
 	{
+		//Here we are initializing the points on the Cube. Picture a 3D graph, where you have x, y, z.
+		//ALways need to be declared Clockwise
 		meshCube.tris = {
 
 			// SOUTH
@@ -131,11 +82,14 @@ public:
 		};
 
 		// Projection Matrix
-		float fNear = 0.1f;
-		float fFar = 1000.0f;
-		float fFov = 90.0f;
-		float fAspectRatio = (float)ScreenHeight() / (float)ScreenWidth();
-		float fFovRad = 1.0f / tanf(fFov * 0.5f / 180.0f * 3.14159f);
+		// These are the values that are used to calculate the exact sizing of the objects on screen based on
+		// their distance away from the view. This is one of the more computationally confusing aspects. By using this
+		// Projection Matrix, it gives a highly customizable viewport for the objects being rendered. 
+		float fNear = 0.1f; //Near Plane
+		float fFar = 1000.0f; //Far Plane
+		float fFov = 90.0f; //Field of View (degrees)
+		float fAspectRatio = (float)ScreenHeight() / (float)ScreenWidth(); //Aspect Ratio, will adapt to whatever size console
+		float fFovRad = 1.0f / tanf(fFov * 0.5f / 180.0f * 3.14159f); //Tangent Calculation for Projection Matrix (in radians)
 
 		matProj.m[0][0] = fAspectRatio * fFovRad;
 		matProj.m[1][1] = fFovRad;
@@ -143,16 +97,16 @@ public:
 		matProj.m[3][2] = (-fFar * fNear) / (fFar - fNear);
 		matProj.m[2][3] = 1.0f;
 		matProj.m[3][3] = 0.0f;
+		//The rest of the 2d matrix is initialized to 0
 
 		return true;
 	}
 
 	bool OnUserUpdate(float fElapsedTime) override
 	{
-		// Clear Screen
+		//This command essentially just clears the screen
 		Fill(0, 0, ScreenWidth(), ScreenHeight(), PIXEL_SOLID, FG_BLACK);
 
-		// Set up rotation matrices
 		mat4x4 matRotZ, matRotX;
 		fTheta += 1.0f * fElapsedTime;
 
@@ -172,22 +126,21 @@ public:
 		matRotX.m[2][2] = cosf(fTheta * 0.5f);
 		matRotX.m[3][3] = 1;
 
-		// Draw Triangles
-		for (auto tri : meshCube.tris)
+
+		//Draw our Triangles
+		for (auto tri : meshCube.tris) 
 		{
 			triangle triProjected, triTranslated, triRotatedZ, triRotatedZX;
 
-			// Rotate in Z-Axis
 			MultiplyMatrixVector(tri.p[0], triRotatedZ.p[0], matRotZ);
 			MultiplyMatrixVector(tri.p[1], triRotatedZ.p[1], matRotZ);
 			MultiplyMatrixVector(tri.p[2], triRotatedZ.p[2], matRotZ);
 
-			// Rotate in X-Axis
 			MultiplyMatrixVector(triRotatedZ.p[0], triRotatedZX.p[0], matRotX);
 			MultiplyMatrixVector(triRotatedZ.p[1], triRotatedZX.p[1], matRotX);
 			MultiplyMatrixVector(triRotatedZ.p[2], triRotatedZX.p[2], matRotX);
 
-			// Offset into the screen
+			//Translate Cube
 			triTranslated = triRotatedZX;
 			triTranslated.p[0].z = triRotatedZX.p[0].z + 3.0f;
 			triTranslated.p[1].z = triRotatedZX.p[1].z + 3.0f;
@@ -199,15 +152,20 @@ public:
 			MultiplyMatrixVector(triTranslated.p[2], triProjected.p[2], matProj);
 
 			// Scale into view
-			triProjected.p[0].x += 1.0f; triProjected.p[0].y += 1.0f;
-			triProjected.p[1].x += 1.0f; triProjected.p[1].y += 1.0f;
-			triProjected.p[2].x += 1.0f; triProjected.p[2].y += 1.0f;
+			triProjected.p[0].x += 1.0f; 
+			triProjected.p[0].y += 1.0f;
+			triProjected.p[1].x += 1.0f; 
+			triProjected.p[1].y += 1.0f;
+			triProjected.p[2].x += 1.0f; 
+			triProjected.p[2].y += 1.0f;
+
 			triProjected.p[0].x *= 0.5f * (float)ScreenWidth();
 			triProjected.p[0].y *= 0.5f * (float)ScreenHeight();
 			triProjected.p[1].x *= 0.5f * (float)ScreenWidth();
 			triProjected.p[1].y *= 0.5f * (float)ScreenHeight();
 			triProjected.p[2].x *= 0.5f * (float)ScreenWidth();
 			triProjected.p[2].y *= 0.5f * (float)ScreenHeight();
+
 
 			// Rasterize triangle
 			DrawTriangle(triProjected.p[0].x, triProjected.p[0].y,
@@ -217,20 +175,16 @@ public:
 
 		}
 
-
 		return true;
 	}
-
 };
-
-
-
 
 int main()
 {
 	olcEngine3D demo;
-	if (demo.ConstructConsole(180, 180, 4, 4))
+	if (demo.ConstructConsole(190, 190, 4, 4)) {
 		demo.Start();
+	}
 	return 0;
 }
 
