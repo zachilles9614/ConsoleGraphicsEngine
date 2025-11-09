@@ -1,6 +1,6 @@
 #include "olcConsoleGameEngine.h"
 #include <fstream>
-#include <strstream>
+#include <sstream>
 #include <algorithm>
 using namespace std;
 
@@ -21,40 +21,36 @@ struct mesh
 {
 	vector<triangle> tris;
 
-	bool LoadFromObjectFile(string sFilename)
-	{
-		ifstream f(sFilename);
-		if (!f.is_open())
-			return false;
+        bool LoadFromObjectFile(string sFilename)
+        {
+                ifstream f(sFilename);
+                if (!f.is_open())
+                        return false;
 
-		//Local cache of vertices
-		vector<vec3d> verts;
+                // Local cache of vertices
+                vector<vec3d> verts;
 
-		while (!f.eof())
-		{
-			char line[128];
-			f.getline(line, 128);
+                string line;
+                while (getline(f, line))
+                {
+                        stringstream s(line);
+                        char temp;
 
-			strstream s;
-			s << line;
-
-			char temp;
-			
-			if (line[0] == 'v')
-			{
-				vec3d v;
-				s >> temp >> v.x >> v.y >> v.z;
-				verts.push_back(v);
-			}
-			if (line[0] == 'f')
-			{
-				int f[3];
-				s >> temp >> f[0] >> f[1] >> f[2];
-				tris.push_back({ verts[f[0] - 1], verts[f[1] - 1], verts[f[2] - 1] });
-			}
-		}
-		return true;
-	}
+                        if (!line.empty() && line[0] == 'v')
+                        {
+                                vec3d v;
+                                s >> temp >> v.x >> v.y >> v.z;
+                                verts.push_back(v);
+                        }
+                        if (!line.empty() && line[0] == 'f')
+                        {
+                                int fIdx[3];
+                                s >> temp >> fIdx[0] >> fIdx[1] >> fIdx[2];
+                                tris.push_back({ verts[fIdx[0] - 1], verts[fIdx[1] - 1], verts[fIdx[2] - 1] });
+                        }
+                }
+                return true;
+        }
 };
 
 struct mat4x4
@@ -239,29 +235,34 @@ public:
 		//This command essentially just clears the screen
 		Fill(0, 0, ScreenWidth(), ScreenHeight(), PIXEL_SOLID, FG_BLACK);
 
-		mat4x4 matRotZ, matRotX;
-		fTheta += 1.0f * fElapsedTime;
+                mat4x4 matRotZ, matRotX;
+                fTheta += 1.0f * fElapsedTime;
 
-		// Rotation Z
-		matRotZ.m[0][0] = cosf(fTheta);
-		matRotZ.m[0][1] = sinf(fTheta);
-		matRotZ.m[1][0] = -sinf(fTheta);
-		matRotZ.m[1][1] = cosf(fTheta);
-		matRotZ.m[2][2] = 1;
-		matRotZ.m[3][3] = 1;
+                float sinTheta = sinf(fTheta);
+                float cosTheta = cosf(fTheta);
+                float sinThetaHalf = sinf(fTheta * 0.5f);
+                float cosThetaHalf = cosf(fTheta * 0.5f);
 
-		// Rotation X
-		matRotX.m[0][0] = 1;
-		matRotX.m[1][1] = cosf(fTheta * 0.5f);
-		matRotX.m[1][2] = sinf(fTheta * 0.5f);
-		matRotX.m[2][1] = -sinf(fTheta * 0.5f);
-		matRotX.m[2][2] = cosf(fTheta * 0.5f);
-		matRotX.m[3][3] = 1;
+                // Rotation Z
+                matRotZ.m[0][0] = cosTheta;
+                matRotZ.m[0][1] = sinTheta;
+                matRotZ.m[1][0] = -sinTheta;
+                matRotZ.m[1][1] = cosTheta;
+                matRotZ.m[2][2] = 1;
+                matRotZ.m[3][3] = 1;
+
+                // Rotation X
+                matRotX.m[0][0] = 1;
+                matRotX.m[1][1] = cosThetaHalf;
+                matRotX.m[1][2] = sinThetaHalf;
+                matRotX.m[2][1] = -sinThetaHalf;
+                matRotX.m[2][2] = cosThetaHalf;
+                matRotX.m[3][3] = 1;
 
 		vector<triangle> vecTrianglesToRaster;
 
 		//Draw our Triangles
-		for (auto tri : meshCube.tris) 
+                for (auto &tri : meshCube.tris)
 		{
 			triangle triProjected, triTranslated, triRotatedZ, triRotatedZX;
 
@@ -295,10 +296,11 @@ public:
 			normal.y = line1.z * line2.x - line1.x * line2.z;
 			normal.z = line1.x * line2.y - line1.y * line2.x;
 
-			float l = sqrtf(normal.x*normal.x + normal.y*normal.y + normal.z*normal.z);
-			normal.x /= l;
-			normal.y /= l;
-			normal.z /= l;
+                        float l = sqrtf(normal.x*normal.x + normal.y*normal.y + normal.z*normal.z);
+                        float inv_l = 1.0f / l;
+                        normal.x *= inv_l;
+                        normal.y *= inv_l;
+                        normal.z *= inv_l;
 
 			//This will only render triangles if they are facing towards the "camera"
 			//if (normal.z < 0) {
@@ -307,11 +309,12 @@ public:
 				normal.z * (triTranslated.p[0].z - vCamera.z) < 0.0f)
 			{
 				// Illumination for shadows
-				vec3d light_direction = { 0.0f, 0.0f, -1.0f }; // directions of x, y, z (aimed at camera)
-				float l = sqrtf(light_direction.x * light_direction.x + light_direction.y * light_direction.y + light_direction.z * light_direction.z);
-				light_direction.x /= l;
-				light_direction.y /= l;
-				light_direction.z /= l;
+                                vec3d light_direction = { 0.0f, 0.0f, -1.0f }; // directions of x, y, z (aimed at camera)
+                                float l_dir = sqrtf(light_direction.x * light_direction.x + light_direction.y * light_direction.y + light_direction.z * light_direction.z);
+                                float inv_l_dir = 1.0f / l_dir;
+                                light_direction.x *= inv_l_dir;
+                                light_direction.y *= inv_l_dir;
+                                light_direction.z *= inv_l_dir;
 
 				//dot product for light direction
 				float dp = normal.x * light_direction.x + normal.y * light_direction.y + normal.z * light_direction.z;
