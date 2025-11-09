@@ -26,7 +26,7 @@ private:
 
 	float fTheta;
 
-	void MultiplyMatrixVector(vec3d &i, vec3d &o, mat4x4 &m)
+	void MultiplyMatrixVector(const vec3d &i, vec3d &o, const mat4x4 &m)
 	{
 		o.x = i.x * m.m[0][0] + i.y * m.m[1][0] + i.z * m.m[2][0] + m.m[3][0];
 		o.y = i.x * m.m[0][1] + i.y * m.m[1][1] + i.z * m.m[2][1] + m.m[3][1];
@@ -184,7 +184,9 @@ public:
 	bool OnUserUpdate(float fElapsedTime) override
 	{
 		//This command essentially just clears the screen
-		Fill(0, 0, ScreenWidth(), ScreenHeight(), PIXEL_SOLID, FG_BLACK);
+		int screenWidth = ScreenWidth();
+		int screenHeight = ScreenHeight();
+		Fill(0, 0, screenWidth, screenHeight, PIXEL_SOLID, FG_BLACK);
 
 		mat4x4 matRotZ, matRotX;
 		fTheta += 1.0f * fElapsedTime;
@@ -206,9 +208,14 @@ public:
 		matRotX.m[3][3] = 1;
 
 		vector<triangle> vecTrianglesToRaster;
+		vecTrianglesToRaster.reserve(meshCube.tris.size());
+
+		const vec3d lightDirection = { 0.0f, 0.0f, -1.0f };
+		float fHalfScreenWidth = 0.5f * static_cast<float>(screenWidth);
+		float fHalfScreenHeight = 0.5f * static_cast<float>(screenHeight);
 
 		//Draw our Triangles
-		for (auto tri : meshCube.tris) 
+		for (const auto &tri : meshCube.tris)
 		{
 			triangle triProjected, triTranslated, triRotatedZ, triRotatedZX;
 
@@ -254,14 +261,7 @@ public:
 				normal.z * (triTranslated.p[0].z - vCamera.z) < 0.0f)
 			{
 				// Illumination for shadows
-				vec3d light_direction = { 0.0f, 0.0f, -1.0f }; // directions of x, y, z (aimed at camera)
-				float l = sqrtf(light_direction.x * light_direction.x + light_direction.y * light_direction.y + light_direction.z * light_direction.z);
-				light_direction.x /= l;
-				light_direction.y /= l;
-				light_direction.z /= l;
-
-				//dot product for light direction
-				float dp = normal.x * light_direction.x + normal.y * light_direction.y + normal.z * light_direction.z;
+				float dp = normal.x * lightDirection.x + normal.y * lightDirection.y + normal.z * lightDirection.z;
 
 				//This sets the shading from shadows
 				CHAR_INFO c = GetColor(dp);
@@ -283,12 +283,12 @@ public:
 				triProjected.p[2].x += 1.0f;
 				triProjected.p[2].y += 1.0f;
 
-				triProjected.p[0].x *= 0.5f * (float)ScreenWidth();
-				triProjected.p[0].y *= 0.5f * (float)ScreenHeight();
-				triProjected.p[1].x *= 0.5f * (float)ScreenWidth();
-				triProjected.p[1].y *= 0.5f * (float)ScreenHeight();
-				triProjected.p[2].x *= 0.5f * (float)ScreenWidth();
-				triProjected.p[2].y *= 0.5f * (float)ScreenHeight();
+				triProjected.p[0].x *= fHalfScreenWidth;
+				triProjected.p[0].y *= fHalfScreenHeight;
+				triProjected.p[1].x *= fHalfScreenWidth;
+				triProjected.p[1].y *= fHalfScreenHeight;
+				triProjected.p[2].x *= fHalfScreenWidth;
+				triProjected.p[2].y *= fHalfScreenHeight;
 
 				// Store triangle for sorting
 				vecTrianglesToRaster.push_back(triProjected);
@@ -328,7 +328,10 @@ public:
 int main()
 {
 	olcEngine3D demo;
-	if (demo.ConstructConsole(190, 190, 4, 4)) {
+	const int highResFontWidth = 2;
+	const int highResFontHeight = 2;
+	if (demo.ConstructConsoleFullScreen(highResFontWidth, highResFontHeight) ||
+		demo.ConstructConsole(190, 190, 4, 4)) {
 		demo.Start();
 	}
 	return 0;
