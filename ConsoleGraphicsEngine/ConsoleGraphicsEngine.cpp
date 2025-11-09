@@ -27,33 +27,33 @@ struct mesh
 		if (!f.is_open())
 			return false;
 
-		//Local cache of vertices
-		vector<vec3d> verts;
+                // Local cache of vertices
+                vector<vec3d> verts;
 
-		while (!f.eof())
-		{
-			char line[128];
-			f.getline(line, 128);
+                string line;
+                while (std::getline(f, line))
+                {
+                        // Skip empty lines to avoid processing junk data
+                        if (line.empty())
+                                continue;
 
-			strstream s;
-			s << line;
+                        std::stringstream s(line);
+                        char temp;
 
-			char temp;
-			
-			if (line[0] == 'v')
-			{
-				vec3d v;
-				s >> temp >> v.x >> v.y >> v.z;
-				verts.push_back(v);
-			}
-			if (line[0] == 'f')
-			{
-				int f[3];
-				s >> temp >> f[0] >> f[1] >> f[2];
-				tris.push_back({ verts[f[0] - 1], verts[f[1] - 1], verts[f[2] - 1] });
-			}
-		}
-		return true;
+                        if (line[0] == 'v')
+                        {
+                                vec3d v;
+                                s >> temp >> v.x >> v.y >> v.z;
+                                verts.push_back(v);
+                        }
+                        else if (line[0] == 'f')
+                        {
+                                int f[3];
+                                s >> temp >> f[0] >> f[1] >> f[2];
+                                tris.push_back({ verts[f[0] - 1], verts[f[1] - 1], verts[f[2] - 1] });
+                        }
+                }
+                return true;
 	}
 };
 
