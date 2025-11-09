@@ -427,6 +427,33 @@ public:
 		return 1;
 	}
 
+	int ConstructConsoleFullScreen(int fontw, int fonth)
+		{
+		if (m_hConsole == INVALID_HANDLE_VALUE)
+		return Error(L"Bad Handle");
+		
+		m_rectWindow = { 0, 0, 1, 1 };
+		SetConsoleWindowInfo(m_hConsole, TRUE, &m_rectWindow);
+		
+		CONSOLE_FONT_INFOEX cfi{};
+		cfi.cbSize = sizeof(cfi);
+		cfi.nFont = 0;
+		cfi.dwFontSize.X = fontw;
+		cfi.dwFontSize.Y = fonth;
+		cfi.FontFamily = FF_DONTCARE;
+		cfi.FontWeight = FW_NORMAL;
+		wcscpy_s(cfi.FaceName, L"Consolas");
+		
+		if (!SetCurrentConsoleFontEx(m_hConsole, false, &cfi))
+		return Error(L"SetCurrentConsoleFontEx");
+		
+		COORD largest = GetLargestConsoleWindowSize(m_hConsole);
+		if (largest.X <= 0 || largest.Y <= 0)
+		return Error(L"GetLargestConsoleWindowSize");
+		
+		return ConstructConsole(largest.X, largest.Y, fontw, fonth);
+	}
+
 	virtual void Draw(int x, int y, short c = 0x2588, short col = 0x000F)
 	{
 		if (x >= 0 && x < m_nScreenWidth && y >= 0 && y < m_nScreenHeight)
